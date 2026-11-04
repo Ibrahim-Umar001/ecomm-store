@@ -1,4 +1,5 @@
 import type { ProductFilter } from "../data/products";
+import { Link } from "react-router-dom";
 
 interface StoreHeaderProps {
   cartCount: number;
@@ -33,9 +34,9 @@ export default function StoreHeader({
       </div>
       <header className="site-header">
         <div className="header-main">
-          <a className="brand" href="#" aria-label="goodthings home">
+          <Link className="brand" to="/" aria-label="goodthings home">
             goodthings<span>.</span>
-          </a>
+          </Link>
           <label className="search-field">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="11" cy="11" r="7" />
@@ -51,13 +52,13 @@ export default function StoreHeader({
             <span className="search-shortcut">⌘ K</span>
           </label>
           <div className="header-actions">
-            <button className="account-link" type="button" aria-label="Your account">
+            <Link className="account-link" to="/admin" aria-label="Store admin">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="8" r="3.5" />
                 <path d="M5 20c.5-3.5 3.2-5.5 7-5.5s6.5 2 7 5.5" />
               </svg>
               <span>Account</span>
-            </button>
+            </Link>
             <button
               className="cart-button"
               type="button"

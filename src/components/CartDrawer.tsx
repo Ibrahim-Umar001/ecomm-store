@@ -1,20 +1,25 @@
 import type { CartItem } from "../types";
+import type { CartQuote } from "../types";
+import { formatPrice } from "../api/client";
+import { useNavigate } from "react-router-dom";
 
 interface CartDrawerProps {
   items: CartItem[];
+  quote: CartQuote | null;
+  quoteError: string;
   onClose: () => void;
   onChangeQuantity: (productId: string, change: number) => void;
 }
 
 export default function CartDrawer({
   items,
+  quote,
+  quoteError,
   onClose,
   onChangeQuantity,
 }: CartDrawerProps) {
-  const subtotal = items.reduce(
-    (total, item) => total + item.product.price * item.quantity,
-    0,
-  );
+  const navigate = useNavigate();
+  const canCheckout = Boolean(quote?.inStock);
 
   return (
     <div className="cart-layer">
@@ -45,23 +50,37 @@ export default function CartDrawer({
           </div>
         ) : (
           <>
-            <p className="shipping-note">
-              {subtotal >= 75
-                ? "You’ve unlocked free shipping. Nice."
-                : `You’re $${(75 - subtotal).toFixed(2)} away from free shipping.`}
-            </p>
+            {quote ? (
+              <p className="shipping-note">
+                {quote.delivery === 0
+                  ? "You’ve unlocked free shipping. Nice."
+                  : `You’re ${formatPrice(75 - quote.subtotal)} away from free shipping.`}
+              </p>
+            ) : (
+              <p className={quoteError ? "form-error" : "shipping-note"}>
+                {quoteError || "Checking current prices and availability…"}
+              </p>
+            )}
             <ul className="cart-items">
-              {items.map(({ product, quantity }) => (
-                <li className="cart-item" key={product.id}>
-                  <img src={product.image} alt={product.imageAlt} />
+              {items.map(({ product, variantId, quantity }) => {
+                const quotedItem = quote?.items.find((item) => item.variantId === variantId);
+                const productVariant = product.variants.find((variant) => variant.id === variantId);
+                const availableStock = quotedItem?.stock ?? productVariant?.stock ?? 0;
+                return (
+                <li className="cart-item" key={variantId}>
+                  <img src={quotedItem?.productImage ?? product.image} alt={product.imageAlt} />
                   <div className="cart-item-info">
                     <p className="product-category">{product.category}</p>
                     <h3>{product.name}</h3>
+                    <p className="cart-variant-name">{quotedItem?.variantName ?? "Selected option"}</p>
+                    {quotedItem && !quotedItem.available && (
+                      <p className="form-error">Only {quotedItem.stock} in stock.</p>
+                    )}
                     <div className="quantity-control" aria-label={`Quantity: ${quantity}`}>
                       <button
                         type="button"
                         aria-label={`Remove one ${product.name}`}
-                        onClick={() => onChangeQuantity(product.id, -1)}
+                        onClick={() => onChangeQuantity(variantId, -1)}
                       >
                         −
                       </button>
@@ -69,20 +88,41 @@ export default function CartDrawer({
                       <button
                         type="button"
                         aria-label={`Add one ${product.name}`}
-                        onClick={() => onChangeQuantity(product.id, 1)}
+                        disabled={quantity >= Math.min(20, availableStock)}
+                        onClick={() => onChangeQuantity(variantId, 1)}
                       >
                         +
                       </button>
                     </div>
+                    <button
+                      className="cart-remove"
+                      type="button"
+                      onClick={() => onChangeQuantity(variantId, -quantity)}
+                    >
+                      Remove
+                    </button>
                   </div>
-                  <p className="cart-item-price">${(product.price * quantity).toFixed(2)}</p>
+                  <p className="cart-item-price">
+                    {quotedItem ? formatPrice(quotedItem.price * quantity) : "—"}
+                  </p>
                 </li>
-              ))}
+                );
+              })}
             </ul>
             <div className="cart-summary">
-              <div><span>Subtotal</span><strong>${subtotal.toFixed(2)}</strong></div>
-              <p>Shipping and taxes calculated at checkout.</p>
-              <button className="button button-dark checkout-button" type="button">
+              <div><span>Subtotal</span><strong>{quote ? formatPrice(quote.subtotal) : "—"}</strong></div>
+              <div><span>Delivery</span><strong>{quote ? (quote.delivery ? formatPrice(quote.delivery) : "Free") : "—"}</strong></div>
+              <div><span>Total</span><strong>{quote ? formatPrice(quote.total) : "—"}</strong></div>
+              <p>Final totals are confirmed securely at checkout.</p>
+              <button
+                className="button button-dark checkout-button"
+                type="button"
+                disabled={!canCheckout}
+                onClick={() => {
+                  onClose();
+                  navigate("/checkout");
+                }}
+              >
                 Continue to checkout <span aria-hidden="true">→</span>
               </button>
             </div>

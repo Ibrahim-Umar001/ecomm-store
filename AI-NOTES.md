@@ -31,6 +31,10 @@
 3. **The first browser cart assertion used a product heading that appears both
    in the catalogue and cart drawer.** The interaction itself worked; I scoped
    the assertion to the cart dialog and verified quantity changes and totals.
-4. **The initial product seed idea contained fewer products than the brief's
-   20-product minimum.** The catalogue/seed requirement is explicitly tracked
-   at 20 or more products before completion.
+4. **An API test guessed the wrong slug for the seeded water bottle.** I checked
+   the seeded rows and corrected the fixture to use the actual `glass-bottle`
+   slug; the product detail test then passed.
+5. **The dev server's child processes remained alive after stopping its shell.**
+   Their Prisma engine file lock prevented client generation. I inspected the
+   exact workspace Node commands, stopped only those specific processes, and
+   reran generation/build successfully.
