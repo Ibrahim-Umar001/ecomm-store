@@ -415,10 +415,11 @@ interface OrderReceipt {
   items: { productName: string; variantName: string; quantity: number; unitPrice: number }[];
 }
 
-function OrderResult({ orderNumber, contact, sessionId }: {
+function OrderResult({ orderNumber, contact, sessionId, clearCartOnPaid = false }: {
   orderNumber: string;
   contact: string;
   sessionId?: string;
+  clearCartOnPaid?: boolean;
 }) {
   const { clearCart } = useStore();
   const [order, setOrder] = useState<OrderReceipt | null>(null);
@@ -439,7 +440,7 @@ function OrderResult({ orderNumber, contact, sessionId }: {
         .then((result) => {
           setOrder(result);
           setError("");
-          if (result.paymentStatus === "paid") clearCart();
+          if (clearCartOnPaid && result.paymentStatus === "paid") clearCart();
           if (
             sessionId &&
             result.paymentStatus === "pending" &&
@@ -459,16 +460,45 @@ function OrderResult({ orderNumber, contact, sessionId }: {
       controller.abort();
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [orderNumber, contact, sessionId, clearCart]);
+  }, [orderNumber, contact, sessionId, clearCartOnPaid, clearCart]);
 
   if (error) return <p className="form-error" role="alert">{error}</p>;
   if (!order) return <p role="status">Loading your order…</p>;
+
+  const progressStages = [
+    { status: "pending", label: "Order placed" },
+    { status: "processing", label: "Processing" },
+    { status: "shipped", label: "Shipped" },
+    { status: "delivered", label: "Delivered" },
+  ];
+  const currentStage = progressStages.findIndex((stage) => stage.status === order.status);
 
   return (
     <div className="order-result">
       <p className="eyebrow">ORDER {order.orderNumber}</p>
       <h2>{order.paymentStatus === "paid" ? "Payment received. Thank you." : "Your order is in good hands."}</h2>
       <p>Status: <strong>{order.status}</strong> · Payment: <strong>{order.paymentStatus}</strong></p>
+      {currentStage >= 0 ? (
+        <section className="order-progress" aria-label="Delivery progress">
+          <p className="eyebrow">DELIVERY PROGRESS</p>
+          <ol>
+            {progressStages.map((stage, index) => (
+              <li
+                key={stage.status}
+                className={index < currentStage ? "complete" : index === currentStage ? "current" : ""}
+                aria-current={index === currentStage ? "step" : undefined}
+              >
+                <span aria-hidden="true">{index < currentStage ? "✓" : index + 1}</span>
+                {stage.label}
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : (
+        <p className="order-cancelled" role="status">
+          This order has been cancelled. No further delivery updates are expected.
+        </p>
+      )}
       <ul className="receipt-items">
         {order.items.map((item, index) => (
           <li key={`${item.productName}-${index}`}>
@@ -482,7 +512,10 @@ function OrderResult({ orderNumber, contact, sessionId }: {
         <span>Delivery</span><strong>{order.delivery ? formatPrice(order.delivery) : "Free"}</strong>
         <span>Total</span><strong>{formatPrice(order.total)}</strong>
       </div>
-      <Link className="button button-dark" to={`/track?order=${encodeURIComponent(order.orderNumber)}`}>
+      <Link
+        className="button button-dark"
+        to={`/track?order=${encodeURIComponent(order.orderNumber)}${contact ? `&contact=${encodeURIComponent(contact)}` : ""}`}
+      >
         Track your order <span aria-hidden="true">→</span>
       </Link>
     </div>
@@ -498,7 +531,12 @@ export function OrderConfirmationPage() {
   return (
     <section className="page-shell order-page">
       <p className="eyebrow">THANK YOU FOR SHOPPING SMALL</p>
-      <OrderResult orderNumber={orderNumber} contact={contact} sessionId={sessionId || undefined} />
+      <OrderResult
+        orderNumber={orderNumber}
+        contact={contact}
+        sessionId={sessionId || undefined}
+        clearCartOnPaid
+      />
       {!contact && !sessionId && <p className="form-error">Order confirmation details are missing. Use order tracking to look it up.</p>}
     </section>
   );
@@ -507,7 +545,7 @@ export function OrderConfirmationPage() {
 export function TrackingPage() {
   const [params] = useSearchParams();
   const [orderNumber, setOrderNumber] = useState(params.get("order") ?? "");
-  const [contact, setContact] = useState("");
+  const [contact, setContact] = useState(params.get("contact") ?? "");
   const [lookup, setLookup] = useState<{ orderNumber: string; contact: string } | null>(null);
   const [validationMessage, setValidationMessage] = useState("");
   usePageMetadata("Track an order — goodthings", "Look up a goodthings order using its order number and checkout contact.");
@@ -530,7 +568,7 @@ export function TrackingPage() {
         <label className="field-label" htmlFor="tracking-order">Order number</label>
         <input id="tracking-order" className="form-control" value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} required />
         <label className="field-label" htmlFor="tracking-contact">Checkout email or phone</label>
-        <input id="tracking-contact" className="form-control" value={contact} onChange={(event) => setContact(event.target.value)} autoComplete="email" required />
+        <input id="tracking-contact" className="form-control" value={contact} onChange={(event) => setContact(event.target.value)} autoComplete="off" required />
         {validationMessage && <p className="form-error" role="alert">{validationMessage}</p>}
         <button className="button button-dark" type="submit">Find my order <span aria-hidden="true">→</span></button>
       </form>

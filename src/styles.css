@@ -23,13 +23,13 @@
 }
 
 html {
-  min-width: 360px;
+  min-width: 320px;
   scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
-  min-width: 360px;
+  min-width: 320px;
 }
 
 button,
@@ -145,9 +145,16 @@ select:focus-visible {
   padding: 3px 5px;
   border: 1px solid #e7e5df;
   border-radius: 2px;
+  background: transparent;
   color: #989991;
+  cursor: pointer;
   font-size: 9px;
   white-space: nowrap;
+}
+
+.search-shortcut:hover {
+  border-color: #b7bcad;
+  color: var(--ink);
 }
 
 .header-actions {
@@ -293,6 +300,13 @@ select:focus-visible {
 
 .button:hover {
   transform: translateY(-1px);
+}
+
+.button:disabled,
+.button:disabled:hover {
+  cursor: not-allowed;
+  opacity: 0.68;
+  transform: none;
 }
 
 .button-dark {
@@ -1157,6 +1171,63 @@ select:focus-visible {
   font-size: 11px;
 }
 
+.order-progress {
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.order-progress ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 14px 0 0;
+  list-style: none;
+}
+
+.order-progress li {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  color: #92948b;
+  font-size: 9px;
+  text-align: center;
+}
+
+.order-progress li > span {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d6d7ce;
+  border-radius: 50%;
+  font-size: 10px;
+}
+
+.order-progress li.complete,
+.order-progress li.current {
+  color: #355b42;
+}
+
+.order-progress li.complete > span,
+.order-progress li.current > span {
+  border-color: #829477;
+  background: #edf0e8;
+}
+
+.order-progress li.current {
+  font-weight: 700;
+}
+
+.order-cancelled {
+  padding: 11px;
+  border-left: 2px solid #a34a37;
+  background: #f8ece8;
+  color: #842f22;
+  font-size: 10px;
+}
+
 .receipt-items {
   display: grid;
   gap: 11px;
@@ -1957,6 +2028,18 @@ select:focus-visible {
     gap: 6px;
     padding: 0 10px;
     font-size: 9px;
+  }
+
+  .order-result {
+    padding: 18px 14px;
+  }
+
+  .order-progress ol {
+    gap: 3px;
+  }
+
+  .order-progress li {
+    font-size: 8px;
   }
 
   .admin-page {

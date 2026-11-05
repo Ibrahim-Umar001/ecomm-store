@@ -1,5 +1,6 @@
 import type { ProductFilter } from "../data/products";
 import { Link } from "react-router-dom";
+import { useEffect, useRef } from "react";
 
 interface StoreHeaderProps {
   cartCount: number;
@@ -26,6 +27,20 @@ export default function StoreHeader({
   searchTerm,
   onSearchChange,
 }: StoreHeaderProps) {
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function focusSearch(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    }
+
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
+  }, []);
+
   return (
     <>
       <div className="announcement">
@@ -43,13 +58,21 @@ export default function StoreHeader({
               <path d="m16 16 4 4" />
             </svg>
             <input
+              ref={searchInputRef}
               type="search"
               placeholder="Find your good thing"
               value={searchTerm}
               onChange={(event) => onSearchChange(event.target.value)}
               aria-label="Search products"
             />
-            <span className="search-shortcut">⌘ K</span>
+            <button
+              className="search-shortcut"
+              type="button"
+              onClick={() => searchInputRef.current?.focus()}
+              aria-label="Focus product search"
+            >
+              Ctrl / ⌘ K
+            </button>
           </label>
           <div className="header-actions">
             <Link className="account-link" to="/admin" aria-label="Store admin">

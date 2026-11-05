@@ -185,6 +185,8 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [isChecking, setIsChecking] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -241,6 +243,7 @@ export default function AdminPage() {
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setIsLoggingIn(true);
     try {
       const result = await apiRequest<{ email: string }>("/admin/login", {
         method: "POST",
@@ -251,10 +254,13 @@ export default function AdminPage() {
       setPassword("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Sign-in failed.");
+    } finally {
+      setIsLoggingIn(false);
     }
   }
 
   async function logout() {
+    setIsLoggingOut(true);
     try {
       await apiRequest<void>("/admin/logout", { method: "POST" });
       setIsAuthenticated(false);
@@ -264,6 +270,8 @@ export default function AdminPage() {
       setMessage("");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not sign out.");
+    } finally {
+      setIsLoggingOut(false);
     }
   }
 
@@ -295,7 +303,9 @@ export default function AdminPage() {
             <label className="field-label" htmlFor="admin-password">Password</label>
             <input id="admin-password" className="form-control" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
             {error && <p className="form-error" role="alert">{error}</p>}
-            <button className="button button-dark" type="submit">Sign in <span aria-hidden="true">→</span></button>
+            <button className="button button-dark" type="submit" disabled={isLoggingIn}>
+              {isLoggingIn ? "Signing in…" : "Sign in"} <span aria-hidden="true">→</span>
+            </button>
           </form>
           <Link to="/">Back to storefront</Link>
         </section>
@@ -307,7 +317,9 @@ export default function AdminPage() {
     <main className="admin-page">
       <header className="admin-header">
         <div><p className="eyebrow">GOODTHINGS OWNER AREA</p><h1>Your store, at a glance.</h1><p>Signed in as {adminEmail}</p></div>
-        <button className="button button-light" type="button" onClick={() => void logout()}>Sign out</button>
+        <button className="button button-light" type="button" disabled={isLoggingOut} onClick={() => void logout()}>
+          {isLoggingOut ? "Signing out…" : "Sign out"}
+        </button>
       </header>
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="shipping-note" role="status">{message}</p>}
