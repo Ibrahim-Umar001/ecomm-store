@@ -11,6 +11,7 @@ import {
 import CartDrawer from "./components/CartDrawer";
 import StoreHeader from "./components/StoreHeader";
 import AdminPage from "./pages/AdminPage";
+import CustomerAccountPage from "./pages/CustomerAccountPage";
 import {
   CheckoutPage,
   OrderConfirmationPage,
@@ -84,6 +85,7 @@ function StoreApplication() {
         <Routes>
           <Route element={<StoreLayout />}>
             <Route index element={<StorefrontPage />} />
+            <Route path="account" element={<CustomerAccountPage />} />
             <Route path="products/:slug" element={<ProductPage />} />
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="order-confirmation" element={<OrderConfirmationPage />} />

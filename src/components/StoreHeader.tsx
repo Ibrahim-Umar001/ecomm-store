@@ -75,7 +75,7 @@ export default function StoreHeader({
             </button>
           </label>
           <div className="header-actions">
-            <Link className="account-link" to="/admin" aria-label="Store admin">
+            <Link className="account-link" to="/account" aria-label="Customer account">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="8" r="3.5" />
                 <path d="M5 20c.5-3.5 3.2-5.5 7-5.5s6.5 2 7 5.5" />

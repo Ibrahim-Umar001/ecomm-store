@@ -8,6 +8,9 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const totalStock = product.variants.reduce((total, variant) => total + variant.stock, 0);
+  const colorCount = new Set(
+    product.variants.flatMap((variant) => variant.color ? [variant.color] : []),
+  ).size;
 
   return (
     <article className="product-card">
@@ -39,6 +42,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             Demo stock: {totalStock > 0
               ? totalStock <= 3 ? `Low stock — ${totalStock} left` : `${totalStock} available`
               : "NOT IN STOCK"}
+            {colorCount > 0 && ` · ${colorCount} colors`}
           </p>
         </div>
         <p className="product-price">{formatPrice(product.price)}</p>

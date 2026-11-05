@@ -113,6 +113,9 @@ describe("e-commerce API", () => {
         createdAt: { gte: testStartedAt },
       },
     });
+    await prisma.customer.deleteMany({
+      where: { email: { contains: `-${testRunId}-` } },
+    });
     await prisma.adminUser.deleteMany({ where: { email: adminEmail } });
     for (const [variantId, stock] of stockBeforeTests) {
       await prisma.productVariant.update({ where: { id: variantId }, data: { stock } });
@@ -127,6 +130,82 @@ describe("e-commerce API", () => {
     const response = await request("/health");
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ status: "ok", payments: "not-configured" });
+  });
+
+  it("does not create accounts when customer session signing is not configured", async () => {
+    const email = testEmail("no-secret");
+    const configuredSecret = process.env.JWT_SECRET;
+    delete process.env.JWT_SECRET;
+    try {
+      const response = await request("/customer/register", {
+        method: "POST",
+        body: JSON.stringify({
+          name: "Unconfigured Customer",
+          email,
+          password: "CustomerTestPassword2026!",
+        }),
+      });
+      expect(response.status).toBe(503);
+      expect((await response.json()).error).toContain("JWT_SECRET");
+      expect(await prisma.customer.count({ where: { email } })).toBe(0);
+    } finally {
+      if (configuredSecret !== undefined) process.env.JWT_SECRET = configuredSecret;
+    }
+  });
+
+  it("registers customers, protects sessions, and supports sign-in and sign-out", async () => {
+    const email = testEmail("customer");
+    const password = "CustomerTestPassword2026!";
+    const registration = await request("/customer/register", {
+      method: "POST",
+      body: JSON.stringify({ name: "Test Customer", email: email.toUpperCase(), password }),
+    });
+    const registrationBody = await registration.json();
+    const customerCookie = registration.headers.get("set-cookie")?.split(";")[0] ?? "";
+    expect(registration.status).toBe(201);
+    expect(registrationBody.customer).toEqual({ name: "Test Customer", email });
+    expect(customerCookie).toContain("goodthings_customer=");
+
+    const session = await request("/customer/me", {
+      headers: { cookie: customerCookie },
+    });
+    expect(session.status).toBe(200);
+    expect(await session.json()).toEqual({
+      customer: { name: "Test Customer", email },
+    });
+
+    const customerCookieDoesNotAuthenticateAdmin = await request("/admin/dashboard", {
+      headers: { cookie: customerCookie },
+    });
+    expect(customerCookieDoesNotAuthenticateAdmin.status).toBe(401);
+
+    const duplicate = await request("/customer/register", {
+      method: "POST",
+      body: JSON.stringify({ name: "Test Customer", email, password }),
+    });
+    expect(duplicate.status).toBe(409);
+
+    const badLogin = await request("/customer/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password: "wrong-password" }),
+    });
+    expect(badLogin.status).toBe(401);
+
+    const logout = await request("/customer/logout", {
+      method: "POST",
+      headers: { cookie: customerCookie },
+    });
+    expect(logout.status).toBe(204);
+    expect(logout.headers.get("set-cookie")).toContain("Expires=Thu, 01 Jan 1970");
+    const signedOutSession = await request("/customer/me");
+    expect(signedOutSession.status).toBe(401);
+
+    const login = await request("/customer/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    expect(login.status).toBe(200);
+    expect(login.headers.get("set-cookie")).toContain("goodthings_customer=");
   });
 
   it("seeds at least 40 browsable products with variants", async () => {
@@ -146,6 +225,47 @@ describe("e-commerce API", () => {
       "L", "M", "S", "XL", "XS", "XXL",
     ]);
     expect(product.variants.every((variant: { stock: number }) => variant.stock >= 0)).toBe(true);
+  });
+
+  it("returns explicit color, size, price, and stock combinations for new products", async () => {
+    const products = await Promise.all([
+      "everyday-ribbed-tee",
+      "weekend-fleece-crew",
+      "everyday-canvas-sneaker",
+    ].map(async (slug) => {
+      const response = await request(`/products/${slug}`);
+      expect(response.status).toBe(200);
+      return response.json();
+    }));
+
+    expect(products).toHaveLength(3);
+    for (const product of products) {
+      const variants = product.variants as {
+        color: string | null;
+        size: string | null;
+        price: number;
+        stock: number;
+        inStock: boolean;
+      }[];
+      expect(new Set(variants.map((variant) => variant.color)).size).toBeGreaterThanOrEqual(3);
+      expect(new Set(variants.map((variant) => variant.size)).size).toBeGreaterThanOrEqual(4);
+      expect(variants.every((variant) =>
+        variant.color && variant.size && variant.price > 0 && variant.stock > 0 && variant.inStock,
+      )).toBe(true);
+    }
+
+    const tee = products[0];
+    expect(tee).toMatchObject({
+      name: "Everyday ribbed cotton tee",
+      category: "Lifestyle",
+      image: expect.stringContaining("images.unsplash.com"),
+    });
+    expect(tee.variants).toContainEqual(expect.objectContaining({
+      color: "Sage",
+      size: "M",
+      price: 32,
+      stock: 8,
+    }));
   });
 
   it("filters products by search and category", async () => {

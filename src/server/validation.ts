@@ -32,6 +32,8 @@ export const productSchema = z.object({
     id: z.cuid().optional(),
     sku: z.string().trim().min(2).max(80),
     name: z.string().trim().min(1).max(80),
+    color: z.string().trim().min(1).max(40).nullable().optional(),
+    size: z.string().trim().min(1).max(40).nullable().optional(),
     priceCents: z.number().int().min(1).max(10_000_000),
     stock: z.number().int().min(0).max(1_000_000),
   })).min(1).max(40),

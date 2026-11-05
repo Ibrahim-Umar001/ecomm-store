@@ -11,7 +11,15 @@ import multer from "multer";
 import Stripe from "stripe";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
-import { clearAdminCookie, issueAdminCookie, requireAdmin } from "./auth.js";
+import {
+  clearAdminCookie,
+  clearCustomerCookie,
+  hasConfiguredJwtSecret,
+  issueAdminCookie,
+  issueCustomerCookie,
+  requireAdmin,
+  requireCustomer,
+} from "./auth.js";
 import { prisma } from "./db.js";
 import {
   checkoutSchema,
@@ -20,7 +28,7 @@ import {
   productSchema,
   ValidationError,
 } from "./validation.js";
-import type { AdminRequest } from "./types.js";
+import type { AdminRequest, CustomerRequest } from "./types.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
@@ -70,7 +78,15 @@ function publicProduct(product: {
   image: string;
   imageAlt: string;
   badge: string | null;
-  variants: { id: string; sku: string; name: string; priceCents: number; stock: number }[];
+  variants: {
+    id: string;
+    sku: string;
+    name: string;
+    color: string | null;
+    size: string | null;
+    priceCents: number;
+    stock: number;
+  }[];
 }) {
   const sortedVariants = [...product.variants].sort((a, b) => {
     if (a.name === "Standard") return b.name === "Standard" ? 0 : -1;
@@ -202,6 +218,88 @@ const loginLimiter = rateLimit({
   standardHeaders: "draft-8",
   legacyHeaders: false,
   message: { error: "Too many sign-in attempts. Try again in 15 minutes." },
+});
+
+app.post("/api/customer/register", loginLimiter, async (request, response, next) => {
+  try {
+    if (!hasConfiguredJwtSecret()) {
+      response.status(503).json({ error: "Customer accounts are unavailable until JWT_SECRET is configured." });
+      return;
+    }
+    const input = z.object({
+      name: z.string().trim().min(2).max(120),
+      email: z.email().max(254),
+      password: z.string().min(8).max(72),
+    }).parse(request.body);
+    const email = input.email.trim().toLowerCase();
+    const existing = await prisma.customer.findUnique({ where: { email } });
+    if (existing) {
+      response.status(409).json({ error: "An account with this email already exists. Sign in instead." });
+      return;
+    }
+
+    const customer = await prisma.customer.create({
+      data: {
+        name: input.name,
+        email,
+        passwordHash: await bcrypt.hash(input.password, 12),
+      },
+      select: { id: true, name: true, email: true },
+    });
+    issueCustomerCookie(customer.id, response);
+    response.status(201).json({
+      customer: { name: customer.name, email: customer.email },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/customer/login", loginLimiter, async (request, response, next) => {
+  try {
+    if (!hasConfiguredJwtSecret()) {
+      response.status(503).json({ error: "Customer accounts are unavailable until JWT_SECRET is configured." });
+      return;
+    }
+    const input = z.object({
+      email: z.email().max(254),
+      password: z.string().min(1).max(72),
+    }).parse(request.body);
+    const customer = await prisma.customer.findUnique({
+      where: { email: input.email.trim().toLowerCase() },
+    });
+    if (!customer || !(await bcrypt.compare(input.password, customer.passwordHash))) {
+      response.status(401).json({ error: "Email or password is incorrect." });
+      return;
+    }
+
+    issueCustomerCookie(customer.id, response);
+    response.json({ customer: { name: customer.name, email: customer.email } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/api/customer/me", requireCustomer, async (request: CustomerRequest, response, next) => {
+  try {
+    const customer = await prisma.customer.findUnique({
+      where: { id: request.customerId },
+      select: { name: true, email: true },
+    });
+    if (!customer) {
+      clearCustomerCookie(response);
+      response.status(401).json({ error: "Customer account no longer exists." });
+      return;
+    }
+    response.json({ customer });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/customer/logout", (_request, response) => {
+  clearCustomerCookie(response);
+  response.status(204).end();
 });
 
 app.get("/api/health", (_request, response) => {
@@ -680,9 +778,11 @@ admin.post("/products", requireAdmin, async (request, response, next) => {
         imageAlt: input.imageAlt,
         badge: input.badge ?? null,
         active: input.active,
-        variants: { create: input.variants.map(({ sku, name, priceCents, stock }) => ({
+        variants: { create: input.variants.map(({ sku, name, color, size, priceCents, stock }) => ({
           sku,
           name,
+          color: color ?? null,
+          size: size ?? null,
           priceCents,
           stock,
         })) },
@@ -738,6 +838,8 @@ admin.put("/products/:id", requireAdmin, async (request, response, next) => {
             data: {
               sku: variant.sku,
               name: variant.name,
+              color: variant.color ?? null,
+              size: variant.size ?? null,
               priceCents: variant.priceCents,
               stock: variant.stock,
             },
@@ -748,6 +850,8 @@ admin.put("/products/:id", requireAdmin, async (request, response, next) => {
               productId: product.id,
               sku: variant.sku,
               name: variant.name,
+              color: variant.color ?? null,
+              size: variant.size ?? null,
               priceCents: variant.priceCents,
               stock: variant.stock,
             },

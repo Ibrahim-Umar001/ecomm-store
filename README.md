@@ -17,11 +17,11 @@ Copy-Item .env.example .env
 ```
 
 The default `DATABASE_URL="file:./dev.db"` stores the SQLite database at
-`prisma/dev.db`. Keep `.env` private and untracked. To enable admin sign-in and
-seed an admin account, set a unique `JWT_SECRET` (at least 32 characters),
-`ADMIN_EMAIL`, and `ADMIN_PASSWORD` (at least 12 characters). The seed hashes
-the admin password; it is never stored in the database as plain text. Without
-admin credentials, the seed creates catalog products only.
+`prisma/dev.db`. Keep `.env` private and untracked. Set a unique `JWT_SECRET`
+(at least 32 characters) to enable customer and admin sign-in. To seed an admin
+account, also set `ADMIN_EMAIL` and `ADMIN_PASSWORD` (at least 12 characters).
+The seed hashes the admin password; it is never stored in the database as plain
+text. Without admin credentials, the seed creates catalog products only.
 
 Generate the Prisma client, safely apply the existing migrations, and seed
 missing sample products:
@@ -39,11 +39,11 @@ npm run dev
 ```
 
 Open the Vite URL printed in the terminal (normally `http://localhost:5173`).
-The admin login is at `/admin`. The API listens on port 4000 and Vite proxies
-`/api` and `/uploads`.
+Customer registration and sign-in are at `/account`; the admin login is at
+`/admin`. The API listens on port 4000 and Vite proxies `/api` and `/uploads`.
 
-The seed creates 40 sample products with stock tracked per variant, including
-size-specific options for selected apparel. Seeded inventory is **demo data**,
+The seed creates 43 sample products with stock tracked per variant, including
+color-and-size combinations for sample apparel and footwear. Seeded inventory is **demo data**,
 not actual warehouse stock; confirm and update every quantity in Store admin
 before accepting live orders. Re-running the seed adds missing demo products
 but does not overwrite existing product or inventory records. Product imagery
@@ -89,6 +89,7 @@ npm start            # Run the compiled API
 - `/checkout` — guest address form, cash on delivery, or Stripe test checkout
 - `/order-confirmation` — order details and server-confirmed payment status
 - `/track` — order lookup by order number and checkout email or phone
+- `/account` — customer registration and sign-in
 - `/admin` — authenticated product, inventory, order, and sales management
 
 ## Data and safety notes

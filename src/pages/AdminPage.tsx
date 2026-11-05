@@ -7,6 +7,8 @@ interface AdminVariant {
   id?: string;
   sku: string;
   name: string;
+  color?: string | null;
+  size?: string | null;
   priceCents: number;
   stock: number;
 }
@@ -60,7 +62,7 @@ const emptyDraft: Omit<AdminProduct, "id"> = {
   imageAlt: "",
   badge: null,
   active: true,
-  variants: [{ sku: "", name: "Standard", priceCents: 0, stock: 0 }],
+  variants: [{ sku: "", name: "Standard", color: "", size: "", priceCents: 0, stock: 0 }],
 };
 
 function ProductEditor({
@@ -162,10 +164,12 @@ function ProductEditor({
       <label className="field-label" htmlFor="admin-image-alt">Accessible image description</label>
       <input id="admin-image-alt" className="form-control" value={draft.imageAlt} onChange={(event) => setDraft({ ...draft, imageAlt: event.target.value })} required minLength={5} maxLength={240} />
       <div className="admin-variants">
-        <div className="admin-section-heading"><h3>Variants and stock</h3><button className="button button-light" type="button" onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, { sku: "", name: "", priceCents: 0, stock: 0 }] }))}>Add variant +</button></div>
+        <div className="admin-section-heading"><h3>Variants and stock</h3><button className="button button-light" type="button" onClick={() => setDraft((current) => ({ ...current, variants: [...current.variants, { sku: "", name: "", color: "", size: "", priceCents: 0, stock: 0 }] }))}>Add variant +</button></div>
         {draft.variants.map((variant, index) => (
           <div className="admin-variant-row" key={variant.id ?? index}>
             <label><span>Option</span><input className="form-control" value={variant.name} onChange={(event) => updateVariant(index, { name: event.target.value })} required maxLength={80} /></label>
+            <label><span>Color (optional)</span><input className="form-control" value={variant.color ?? ""} onChange={(event) => updateVariant(index, { color: event.target.value || null })} maxLength={40} /></label>
+            <label><span>Size (optional)</span><input className="form-control" value={variant.size ?? ""} onChange={(event) => updateVariant(index, { size: event.target.value || null })} maxLength={40} /></label>
             <label><span>SKU</span><input className="form-control" value={variant.sku} onChange={(event) => updateVariant(index, { sku: event.target.value })} required maxLength={80} /></label>
             <label><span>Price ($)</span><input className="form-control" type="number" min="0.01" step="0.01" value={(variant.priceCents / 100).toFixed(2)} onChange={(event) => updateVariant(index, { priceCents: Math.round(Number(event.target.value) * 100) })} required /></label>
             <label><span>Stock</span><input className="form-control" type="number" min="0" step="1" value={variant.stock} onChange={(event) => updateVariant(index, { stock: Number(event.target.value) })} required /></label>

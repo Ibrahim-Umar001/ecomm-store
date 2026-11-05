@@ -1096,6 +1096,78 @@ select:focus-visible {
   line-height: 1.8;
 }
 
+.product-options {
+  display: grid;
+  gap: 7px;
+}
+
+.variant-choice {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+
+.variant-choice .field-label {
+  margin-top: 16px;
+}
+
+.color-options,
+.size-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.color-option,
+.size-option {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  background: #fbfaf7;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 10px;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.color-option:hover,
+.size-option:hover {
+  border-color: #9da690;
+}
+
+.color-option.selected,
+.size-option.selected {
+  border-color: var(--green);
+  background: #edf0e8;
+}
+
+.color-option:disabled,
+.size-option:disabled {
+  color: #a7a89f;
+  cursor: not-allowed;
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+
+.color-swatch {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  border: 1px solid rgba(36, 43, 37, 0.18);
+  border-radius: 50%;
+}
+
+.variant-hint {
+  margin: 0;
+  color: #85877f;
+  font-size: 10px;
+}
+
 .field-label {
   display: block;
   margin: 16px 0 6px;
@@ -1225,6 +1297,91 @@ select:focus-visible {
   border-left: 2px solid #a34a37;
   background: #f8ece8;
   color: #842f22;
+  font-size: 10px;
+}
+
+.account-page {
+  max-width: 720px;
+  min-height: 500px;
+}
+
+.account-card {
+  width: min(100%, 450px);
+  margin: 0 auto;
+  padding: clamp(22px, 5vw, 38px);
+  border: 1px solid var(--line);
+  background: #fbfaf7;
+}
+
+.account-card h1 {
+  margin: 12px 0 8px;
+  font-family: var(--serif);
+  font-size: clamp(32px, 5vw, 42px);
+  font-weight: 400;
+  letter-spacing: -0.8px;
+}
+
+.account-intro,
+.account-welcome > p {
+  margin: 0 0 18px;
+  color: #777a72;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.account-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 22px 0 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.account-tabs button {
+  min-height: 42px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #777a72;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.account-tabs button.active {
+  border-bottom-color: var(--green);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.account-form > .button,
+.account-welcome > .button {
+  width: 100%;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.account-form .field-label:first-child {
+  margin-top: 12px;
+}
+
+.account-password-hint {
+  margin: 7px 0 0;
+  color: #85877f;
+  font-size: 9px;
+}
+
+.account-welcome > p strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.account-logout {
+  justify-content: center !important;
+}
+
+.account-back-link {
+  display: inline-block;
+  margin-top: 20px;
+  color: #526b51;
   font-size: 10px;
 }
 
@@ -1635,7 +1792,7 @@ select:focus-visible {
 
 .admin-variant-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 0.8fr 0.65fr auto;
+  grid-template-columns: 1fr 0.8fr 0.8fr 1fr 0.8fr 0.65fr auto;
   align-items: end;
   gap: 8px;
   padding: 10px 0;

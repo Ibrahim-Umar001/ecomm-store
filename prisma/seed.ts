@@ -45,6 +45,9 @@ const catalog = [
   ["rib-knit-house-slippers", "Rib-knit house slippers", "Warm, cushioned slippers for the first coffee and the last page.", "Lifestyle", "1542291026-7eec264c27ff", "Comfortable knit slippers on a neutral floor", 3600, 20, null],
   ["cotton-everyday-tee", "Cotton everyday tee", "A soft, breathable staple with an easy fit for all-day comfort.", "Lifestyle", "1521572163474-6864f9cf17ab", "Folded cotton t-shirt in a neutral tone", 3400, 32, null],
   ["pocket-size-umbrella", "Pocket-size day umbrella", "A compact, sturdy umbrella for the little surprises in the forecast.", "Accessories", "1534274988757-a28bf1a57c17", "Compact umbrella ready for a rainy day", 3900, 17, null],
+  ["everyday-ribbed-tee", "Everyday ribbed cotton tee", "A soft ribbed cotton tee in considered colors, made for easy everyday layering.", "Lifestyle", "1521572163474-6864f9cf17ab", "Ribbed cotton t-shirt in a warm neutral color", 3200, 0, "New"],
+  ["weekend-fleece-crew", "Weekend fleece crewneck", "A relaxed brushed-fleece layer for cool mornings, long walks, and slow weekends.", "Lifestyle", "1556821840-3a63f95609a7", "Cozy fleece crewneck sweatshirt", 6400, 0, "Just in"],
+  ["everyday-canvas-sneaker", "Everyday canvas sneaker", "A lightweight canvas sneaker with a cushioned sole for all the places your day takes you.", "Accessories", "1525966222134-fcfa99b8ae77", "Low-top canvas sneakers in a classic silhouette", 7200, 0, "Just in"],
 ];
 
 const sizedOptions: Record<string, { name: string; stock: number }[]> = {
@@ -65,6 +68,54 @@ const sizedOptions: Record<string, { name: string; stock: number }[]> = {
     { name: "L", stock: 7 },
     { name: "XL", stock: 5 },
     { name: "XXL", stock: 2 },
+  ],
+};
+
+const colorSizeOptions: Record<string, { color: string; size: string; stock: number }[]> = {
+  "everyday-ribbed-tee": [
+    { color: "Oat", size: "S", stock: 7 },
+    { color: "Oat", size: "M", stock: 9 },
+    { color: "Oat", size: "L", stock: 6 },
+    { color: "Oat", size: "XL", stock: 4 },
+    { color: "Sage", size: "S", stock: 5 },
+    { color: "Sage", size: "M", stock: 8 },
+    { color: "Sage", size: "L", stock: 6 },
+    { color: "Sage", size: "XL", stock: 3 },
+    { color: "Terracotta", size: "S", stock: 4 },
+    { color: "Terracotta", size: "M", stock: 7 },
+    { color: "Terracotta", size: "L", stock: 5 },
+    { color: "Terracotta", size: "XL", stock: 2 },
+  ],
+  "weekend-fleece-crew": [
+    { color: "Heather Oat", size: "S", stock: 4 },
+    { color: "Heather Oat", size: "M", stock: 7 },
+    { color: "Heather Oat", size: "L", stock: 6 },
+    { color: "Heather Oat", size: "XL", stock: 3 },
+    { color: "Forest", size: "S", stock: 3 },
+    { color: "Forest", size: "M", stock: 6 },
+    { color: "Forest", size: "L", stock: 5 },
+    { color: "Forest", size: "XL", stock: 2 },
+    { color: "Ink", size: "S", stock: 5 },
+    { color: "Ink", size: "M", stock: 8 },
+    { color: "Ink", size: "L", stock: 4 },
+    { color: "Ink", size: "XL", stock: 2 },
+  ],
+  "everyday-canvas-sneaker": [
+    { color: "Canvas", size: "7", stock: 4 },
+    { color: "Canvas", size: "8", stock: 6 },
+    { color: "Canvas", size: "9", stock: 8 },
+    { color: "Canvas", size: "10", stock: 6 },
+    { color: "Canvas", size: "11", stock: 3 },
+    { color: "Olive", size: "7", stock: 3 },
+    { color: "Olive", size: "8", stock: 5 },
+    { color: "Olive", size: "9", stock: 7 },
+    { color: "Olive", size: "10", stock: 5 },
+    { color: "Olive", size: "11", stock: 2 },
+    { color: "Black", size: "7", stock: 5 },
+    { color: "Black", size: "8", stock: 7 },
+    { color: "Black", size: "9", stock: 8 },
+    { color: "Black", size: "10", stock: 5 },
+    { color: "Black", size: "11", stock: 3 },
   ],
 };
 
@@ -92,7 +143,16 @@ async function main() {
         imageAlt: String(imageAlt),
         badge: typeof badge === "string" ? badge : undefined,
         variants: {
-          create: sizedOptions[productSlug]
+          create: colorSizeOptions[productSlug]
+            ? colorSizeOptions[productSlug].map((option) => ({
+                sku: `${productSlug}-${option.color.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${option.size.toLowerCase()}`,
+                name: `${option.color} / ${option.size}`,
+                color: option.color,
+                size: option.size,
+                priceCents: Number(priceCents),
+                stock: option.stock,
+              }))
+            : sizedOptions[productSlug]
             ? sizedOptions[productSlug].map((option) => ({
                 sku: `${productSlug}-${option.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
                 name: option.name,

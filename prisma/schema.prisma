@@ -14,6 +14,14 @@ model AdminUser {
   createdAt    DateTime @default(now())
 }
 
+model Customer {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
 model Product {
   id          String           @id @default(cuid())
   slug        String           @unique
@@ -37,6 +45,8 @@ model ProductVariant {
   productId  String
   sku        String      @unique
   name       String
+  color      String?
+  size       String?
   priceCents Int
   stock      Int         @default(0)
   product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)

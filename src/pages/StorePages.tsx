@@ -18,6 +18,18 @@ import { usePageMetadata } from "../hooks/usePageMetadata";
 import { useStore } from "../store/useStore";
 import type { Product } from "../types";
 
+const colorSwatches: Record<string, string> = {
+  Oat: "#d8cbb1",
+  Sage: "#8e9b7b",
+  Terracotta: "#b9684b",
+  "Heather Oat": "#c8bda8",
+  Forest: "#355b42",
+  Ink: "#303947",
+  Canvas: "#e5ddcb",
+  Olive: "#69734b",
+  Black: "#292a29",
+};
+
 export interface StoreOutlet {
   activeCategory: string;
   searchTerm: string;
@@ -265,6 +277,8 @@ export function ProductPage() {
   const { addToCart } = useStore();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState("");
@@ -277,6 +291,8 @@ export function ProductPage() {
       .then((result) => {
         setProduct(result);
         setSelectedVariantId("");
+        setSelectedColor("");
+        setSelectedSize("");
         setError("");
       })
       .catch((cause: unknown) => {
@@ -291,9 +307,21 @@ export function ProductPage() {
     product?.description ?? "Explore a thoughtful everyday find from goodthings.",
   );
 
-  const selectedVariant = product?.variants.find((variant) => variant.id === selectedVariantId);
+  const hasColorSizeVariants = product?.variants.some((variant) => variant.color && variant.size) ?? false;
+  const colorOptions = product
+    ? [...new Set(product.variants.flatMap((variant) => variant.color ? [variant.color] : []))]
+    : [];
+  const sizeOptions = product && selectedColor
+    ? product.variants.filter((variant) => variant.color === selectedColor && variant.size)
+    : [];
+  const selectedVariant = hasColorSizeVariants
+    ? product?.variants.find(
+        (variant) => variant.color === selectedColor && variant.size === selectedSize,
+      )
+    : product?.variants.find((variant) => variant.id === selectedVariantId);
   const sizePattern = /^(XS|S|M|L|XL|XXL)(\/(XS|S|M|L|XL|XXL))*$/;
-  const hasSizeVariants = product?.variants.some((variant) => sizePattern.test(variant.name)) ?? false;
+  const hasSizeVariants = !hasColorSizeVariants &&
+    (product?.variants.some((variant) => sizePattern.test(variant.name)) ?? false);
   const noAvailableVariants = product ? !product.variants.some((variant) => variant.inStock) : false;
   const structuredData = product
     ? {
@@ -332,25 +360,90 @@ export function ProductPage() {
           <h1>{product.name}</h1>
           <p className="product-page-price">{formatPrice(selectedVariant?.price ?? product.price)}</p>
           <p className="product-page-description">{product.description}</p>
-          <label className="field-label" htmlFor="variant">
-            {hasSizeVariants ? "Choose a size" : "Choose an option"}
-          </label>
-          <select
-            id="variant"
-            className="form-control"
-            value={selectedVariantId}
-            onChange={(event) => {
-              setSelectedVariantId(event.target.value);
-              setQuantity(1);
-            }}
-          >
-            <option value="" disabled>Select {hasSizeVariants ? "a size" : "an option"}</option>
-            {product.variants.map((variant) => (
-              <option key={variant.id} value={variant.id} disabled={!variant.inStock}>
-                {variant.name} · {formatPrice(variant.price)}{variant.inStock ? ` · ${variant.stock} available` : " · Sold out"}
-              </option>
-            ))}
-          </select>
+          {hasColorSizeVariants ? (
+            <div className="product-options">
+              <fieldset className="variant-choice">
+                <legend className="field-label">Color{selectedColor ? ` · ${selectedColor}` : ""}</legend>
+                <div className="color-options">
+                  {colorOptions.map((color) => {
+                    const available = product.variants.some(
+                      (variant) => variant.color === color && variant.inStock,
+                    );
+                    return (
+                      <button
+                        key={color}
+                        className={`color-option${selectedColor === color ? " selected" : ""}`}
+                        type="button"
+                        disabled={!available}
+                        aria-pressed={selectedColor === color}
+                        onClick={() => {
+                          const firstAvailableSize = product.variants.find(
+                            (variant) => variant.color === color && variant.inStock,
+                          );
+                          setSelectedColor(color);
+                          setSelectedSize(firstAvailableSize?.size ?? "");
+                          setQuantity(1);
+                        }}
+                      >
+                        <span
+                          className="color-swatch"
+                          style={{ backgroundColor: colorSwatches[color] ?? "#ddd" }}
+                          aria-hidden="true"
+                        />
+                        {color}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+              <fieldset className="variant-choice">
+                <legend className="field-label">Size</legend>
+                {selectedColor ? (
+                  <div className="size-options">
+                    {sizeOptions.map((variant) => (
+                      <button
+                        key={variant.id}
+                        className={`size-option${selectedSize === variant.size ? " selected" : ""}`}
+                        type="button"
+                        disabled={!variant.inStock}
+                        aria-pressed={selectedSize === variant.size}
+                        onClick={() => {
+                          setSelectedSize(variant.size ?? "");
+                          setQuantity(1);
+                        }}
+                      >
+                        {variant.size}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="variant-hint">Choose a color to see available sizes.</p>
+                )}
+              </fieldset>
+            </div>
+          ) : (
+            <>
+              <label className="field-label" htmlFor="variant">
+                {hasSizeVariants ? "Choose a size" : "Choose an option"}
+              </label>
+              <select
+                id="variant"
+                className="form-control"
+                value={selectedVariantId}
+                onChange={(event) => {
+                  setSelectedVariantId(event.target.value);
+                  setQuantity(1);
+                }}
+              >
+                <option value="" disabled>Select {hasSizeVariants ? "a size" : "an option"}</option>
+                {product.variants.map((variant) => (
+                  <option key={variant.id} value={variant.id} disabled={!variant.inStock}>
+                    {variant.name} · {formatPrice(variant.price)}{variant.inStock ? ` · ${variant.stock} available` : " · Sold out"}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
           {selectedVariant && (
             <p className={`stock-status${selectedVariant.stock <= 3 ? " low-stock" : ""}${selectedVariant.stock === 0 ? " out-of-stock" : ""}`}>
               {selectedVariant.stock === 0
@@ -391,6 +484,8 @@ export function ProductPage() {
               ? "Checking stock…"
               : selectedVariant
                 ? selectedVariant.inStock ? "Add to bag" : "NOT IN STOCK"
+                : hasColorSizeVariants
+                  ? "Choose a color and size"
                 : noAvailableVariants
                   ? "NOT IN STOCK"
                   : `Choose ${hasSizeVariants ? "a size" : "an option"}`}
