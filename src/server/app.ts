@@ -37,7 +37,9 @@ const stripeSecret = process.env.STRIPE_SECRET_KEY ?? "";
 const stripe = stripeSecret.startsWith("sk_test_")
   ? new Stripe(stripeSecret)
   : null;
-const uploadDirectory = path.resolve(process.cwd(), "uploads");
+const uploadDirectory = path.resolve(
+  process.env.UPLOADS_DIRECTORY ?? path.join(process.cwd(), "uploads"),
+);
 const deliveryFeeCents = 800;
 const freeDeliveryThresholdCents = 7500;
 

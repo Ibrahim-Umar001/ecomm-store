@@ -82,6 +82,38 @@ npm run db:seed      # Seed products and the configured admin
 npm start            # Run the compiled API
 ```
 
+## Deploy to Vercel and Render
+
+The Vercel project serves the Vite storefront. Render hosts the Express API,
+PostgreSQL database, and persistent product-image uploads. The checked-in
+`vercel.json` proxies `/api` and `/uploads` to the Render service so browser
+requests and secure login cookies stay on the Vercel domain.
+
+1. In Render, create a **Blueprint** from this GitHub repository and review the
+   resources and costs in `render.yaml` before creating them. The API requires
+   persistent storage for image uploads.
+2. Set the prompted `ADMIN_EMAIL`, `ADMIN_PASSWORD` (at least 12 characters),
+   and `WEB_URL` to the production Vercel URL. Keep secrets in provider
+   environment settings; never commit them.
+3. Keep the Render API service name `ecomm-store-ibrahim-umar001-api`. If Render
+   assigns a different public hostname, update both API destinations in
+   `vercel.json` to match.
+4. In the existing Vercel project, use the repository root, the Vite framework
+   preset, `npm run build`, and `dist` as the output directory. A push to the
+   connected GitHub branch then deploys the latest storefront.
+5. After both services are live, check `https://<render-host>/api/health` and
+   the Vercel site. Cash on delivery works without Stripe. For test card
+   checkout, add Stripe **test-mode** keys to Render and configure the Stripe
+   webhook endpoint as `https://<vercel-domain>/api/webhooks/stripe`.
+
+Render applies PostgreSQL migrations and seeds demo products when the API
+starts. It also creates or updates the admin account from the configured
+credentials. The existing SQLite database is for local development and is not
+copied to production; production starts with its own seeded demo catalog.
+Review Render's resource pricing before creating the Blueprint. Vercel preview
+deployments use the same API as production, so disable them or avoid placing
+test orders and making admin changes from preview URLs.
+
 ## Main routes
 
 - `/` — searchable, filterable, sortable, paginated catalogue
@@ -104,8 +136,8 @@ npm start            # Run the compiled API
 - Image uploads are limited to JPEG, PNG, WebP, or AVIF and 5 MB.
 - Paid orders cannot be cancelled from admin until a Stripe refund has been
   handled. No card data is persisted.
-- SQLite and local uploads are intended for development. Use a persistent
-  production database and durable object storage before deployment.
+- Local development uses SQLite and local uploads; the Render deployment uses
+  PostgreSQL and a persistent disk for uploaded images.
 
 ## Manual verification checklist
 
